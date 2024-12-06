@@ -1,12 +1,16 @@
 package kindergarten
+
 import (
     "errors"
 )
+
 // Define the Garden type here.
 type Garden struct {
     Diagram string
     Children []string 
 }
+
+
 func NewGarden(diagram string, children []string) (*Garden, error) {
     var garden Garden
     garden.Diagram = diagram
@@ -16,25 +20,23 @@ func NewGarden(diagram string, children []string) (*Garden, error) {
     }
     return &garden, nil
 }
-func (g *Garden) Plants(child string) ([]string, bool) {
+
+func (g *Garden) Plants(child string) (childsGarden []string, err bool) {
+    err = false
     mapOfPlants := map[rune]string {
         'R': "radishes",
         'C': "clover",
         'G': "grass",
         'V': "violets",
     }
-    workingChildren := alphabetize(g.Children)
-    indexOfChild := -1
-    childsGarden := make([]string, 4)
-    for i, gChild := range workingChildren {
-        if child == gChild {
-            indexOfChild = i
-        }
-    }
+    workingChildren := g.alphabetized()
+    indexOfChild := theChildIsAtIndex(workingChildren, child)
     // Not in list
     if indexOfChild == -1 {
-        return workingChildren, false
+        return workingChildren, err
     }
+    childsGarden = make([]string, 4)
+    
     newLineOffset := 1 // deal w/ \n
     beginingOfSecondRow := len(workingChildren) * 2 + newLineOffset
     firstRowStart := (indexOfChild * 2) + newLineOffset
@@ -46,44 +48,54 @@ func (g *Garden) Plants(child string) ([]string, bool) {
     childsGarden[1] = mapOfPlants[rune(frontRow[1])]
     childsGarden[2] = mapOfPlants[rune(backRow[0])]
     childsGarden[3] = mapOfPlants[rune(backRow[1])]
-    return childsGarden, true 
+	err = true
+    return childsGarden, err 
 }
-func alphabetize(children []string) []string {
+
+func (g *Garden)alphabetized() (childrenOut []string) {
+    childrenOut = g.Children
+    
     indexBeingTestedFor := 0
-	mostFirstestName := children[indexBeingTestedFor]
-    mostFirstestIndex := 0
+	currentCandidateName := childrenOut[indexBeingTestedFor]
+    
+    indexCurrentCandidate := 0
     namePushedRight := ""
-    swapNeedsDoing := false
+    swapNeedsDoingFlag := false
+    
     i := indexBeingTestedFor + 1
-    for i < len(children) {
-        if children[i][0] <= mostFirstestName[0] {
+    for i < len(childrenOut) {
+        if childrenOut[i][0] <= currentCandidateName[0] {
             indexShorterThanBothNames := func(nameA, nameB string, index int) bool {
                 indexLessThanA := index < len(nameA)
                 indexLessThanB := index < len(nameB)
                 return indexLessThanA && indexLessThanB
             }
-            for j:=1;indexShorterThanBothNames(children[i], mostFirstestName, j) ;j++ {
-                if children[i][j] < mostFirstestName[j] || children[i][0] < mostFirstestName[0] {
-                	mostFirstestName = children[i]
-                    mostFirstestIndex = i
-                    swapNeedsDoing = true
+            isCandidateEarlier := func(childrenOut, currentCandidateName string, j int) bool {
+                return childrenOut[0] < currentCandidateName[0] || childrenOut[j] < currentCandidateName[j]
+            }
+            for j:=1;indexShorterThanBothNames(childrenOut[i], currentCandidateName, j) ;j++ {
+                if isCandidateEarlier(childrenOut[i], currentCandidateName, j) {
+                	currentCandidateName = childrenOut[i]
+                    indexCurrentCandidate = i
+                    swapNeedsDoingFlag = true
                 }
             }
         }
-        if swapNeedsDoing {
-            namePushedRight = children[indexBeingTestedFor]
-            children[indexBeingTestedFor] = mostFirstestName
-            children[mostFirstestIndex] = namePushedRight
+        if swapNeedsDoingFlag {
+            namePushedRight = childrenOut[indexBeingTestedFor]
+            childrenOut[indexBeingTestedFor] = currentCandidateName
+            childrenOut[indexCurrentCandidate] = namePushedRight
             //reset after
-            swapNeedsDoing = false
+            swapNeedsDoingFlag = false
             indexBeingTestedFor++
-            mostFirstestName = children[indexBeingTestedFor]
+            currentCandidateName = childrenOut[indexBeingTestedFor]
     		i = indexBeingTestedFor
         }
         i++
     }
-    return children
+    return childrenOut
 }
+
 func inputIsBad(diagram string, children []string) bool {
     noChildren := children == nil
     diagramNotCorrectLen := len(diagram) != len(children) * 4 + 2
@@ -103,4 +115,14 @@ func inputIsBad(diagram string, children []string) bool {
         }
     }
     return noChildren || diagramNotCorrectLen || namesRepeat || isntLower
+}
+
+func theChildIsAtIndex(workingChildren []string, child string) (index int) {
+    index = -1
+    for i, gChild := range workingChildren {
+        if child == gChild {
+            index = i
+        }
+    }
+    return index
 }
